@@ -40,6 +40,8 @@ export default function App() {
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
   const [apiReady, setApiReady] = useState(false);
   const [modelMode, setModelMode] = useState<"general" | "coding" | "reasoning">("general");
+  const [provider, setProvider] = useState<"local" | "gemini">("local");
+  const [geminiKey, setGeminiKey] = useState("");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -75,8 +77,8 @@ export default function App() {
       if (!API_BASE) throw new Error("The SENTRA API has not been deployed or connected yet.");
       const response = await fetch(`${API_BASE}/api/v1/chat`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content, mode: modelMode }),
+        headers: { "Content-Type": "application/json", ...(provider === "gemini" && geminiKey ? { "X-Goog-Api-Key": geminiKey } : {}) },
+        body: JSON.stringify({ message: content, mode: modelMode, provider }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "The AI service is not ready.");
@@ -158,18 +160,19 @@ export default function App() {
             {busy && <div className="typing"><i/><i/><i/> SENTRA is working…</div>}
           </div>}
           <form className="composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
-            <select className="model-select" aria-label="Choose local AI model" value={modelMode} onChange={(event) => setModelMode(event.target.value as "general" | "coding" | "reasoning")}><option value="general">Qwen · General</option><option value="coding">Qwen Coder · Code</option><option value="reasoning">DeepSeek R1 · Reasoning</option></select>
+            <select className="model-select" aria-label="Choose AI provider" value={provider} onChange={(event) => setProvider(event.target.value as "local" | "gemini")}><option value="local">Local models</option><option value="gemini">Gemini API</option></select>
+            {provider === "local" && <select className="model-select" aria-label="Choose local AI model" value={modelMode} onChange={(event) => setModelMode(event.target.value as "general" | "coding" | "reasoning")}><option value="general">Qwen · General</option><option value="coding">Qwen Coder · Code</option><option value="reasoning">DeepSeek R1 · Reasoning</option></select>
             <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder="Message SENTRA…" rows={1} aria-label="Message SENTRA"/>
             <button type="submit" className="send-button" disabled={!draft.trim() || busy} aria-label="Send message"><Send size={17}/></button>
           </form>
-          <div className="composer-foot"><span><ShieldCheck size={13}/> Conversation saved on this device</span><span>{apiReady ? "Local AI Core ready · no API keys" : "Waiting for local Ollama models"}</span></div>
+          <div className="composer-foot"><span><ShieldCheck size={13}/> Conversation saved on this device</span><span>{apiReady ? "Local AI Core ready · no API keys" : "Choose Local AI or configure Gemini in Settings"}</span></div>
         </section>
         <footer><span>© 2026 SENTRA PROJECT</span><span>BUILT WITH INTENTION <b>◆</b></span></footer>
       </section> : <section className="content subpage">
         <div className="eyebrow"><span className="eyebrow-line"/> SENTRA MODULE</div>
         <h1>{pageTitle}</h1>
         {active === "Integrations" ? <div className="integration-grid">{modules.slice(2, 6).map(({name,detail,icon:Icon,state}) => <article className="module-card" key={name}><span className="module-icon"><Icon size={19}/></span><h3>{name}</h3><p>{detail}</p><div className="module-status"><span/>{state}</div></article>)}</div> :
-          active === "Settings" ? <div className="settings-card"><h3>Runtime status</h3><p>Web client: ready</p><p>API: {apiStatus === "online" ? "reachable" : "not connected"}</p><p>Local AI Core: {apiReady ? "three local models ready" : "not ready"}</p><p>Conversation storage: this browser only</p><small>API keys must be configured on the backend server. Never paste secret keys into this page.</small></div> :
+          active === "Settings" ? <div className="settings-card"><h3>AI Provider</h3><p>Choose between private local models and Gemini cloud AI.</p><label className="setting-label" htmlFor="sentra-provider">Provider</label><select id="sentra-provider" className="setting-input" value={provider} onChange={(event) => setProvider(event.target.value as "local" | "gemini")}><option value="local">Local AI · Ollama · no API key</option><option value="gemini">Google Gemini · API key required</option></select>{provider === "gemini" ? <><label className="setting-label" htmlFor="gemini-key">Put your Gemini API key</label><input id="gemini-key" className="setting-input" type="password" autoComplete="off" placeholder="Paste Gemini API key here" value={geminiKey} onChange={(event) => setGeminiKey(event.target.value)} /><a className="studio-link" href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer">Open Google AI Studio · Manage API key ↗</a><small>The key stays in this page's memory only and is sent to your configured SENTRA backend over HTTPS/local loopback. It is not saved to browser storage or GitHub. Never share it. Google usage limits and charges may apply.</small></> : <><p>Local models: Qwen General, Qwen Coder, DeepSeek R1.</p><p>Install Ollama and download the models on your Windows host to enable local chat.</p></>}<h3>Runtime status</h3><p>Web client: ready</p><p>API: {apiStatus === "online" ? "reachable" : "not connected"}</p><p>Local models: {apiReady ? "all three detected" : "not confirmed ready"}</p><p>Conversation storage: this browser only</p></div> :
           <div className="settings-card"><div className="empty-symbol"><Bot size={21}/></div><h3>{active} is on the roadmap</h3><p>This module is not active in MVP v0.1 yet. It will be added in a later, tested release.</p><button className="back-button" onClick={() => setActive("Workspace")}>Back to workspace</button></div>}
         <footer><span>© 2026 SENTRA PROJECT</span><span>MVP 0.1</span></footer>
       </section>}
