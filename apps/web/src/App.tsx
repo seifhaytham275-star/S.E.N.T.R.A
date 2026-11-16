@@ -7,7 +7,7 @@ import {
 
 type Message = { id: string; role: "user" | "assistant"; content: string; time: number };
 const STORAGE_KEY = "sentra.mvp.conversations.v1";
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || localStorage.getItem("sentra.localApiUrl") || "http://127.0.0.1:8000").replace(/\/$/, "");
+const API_BASE = (localStorage.getItem("sentra.localApiUrl") || "http://127.0.0.1:8000").replace(/\/$/, "");
 const modules = [
   { name: "AI Core", detail: "Model-powered conversations", icon: BrainCircuit, state: "Three local Ollama models" },
   { name: "Memory Center", detail: "User-controlled memory", icon: Database, state: "Coming next" },
