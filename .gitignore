@@ -29,3 +29,7 @@ Thumbs.db
 # Build outputs
 src-tauri/target/
 android/.gradle/
+
+# Native build outputs
+android/
+dist-native/
