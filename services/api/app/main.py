@@ -8,7 +8,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     app_name: str = "SENTRA API"
     environment: str = "development"
-    cors_origins: str = "http://localhost:5173"
+    cors_origins: str = "http://localhost:5173,https://seifhaytham275-star.github.io,https://localhost,capacitor://localhost"
     ai_api_key: str = ""
     ai_base_url: str = "https://api.openai.com/v1"
     ai_model: str = "gpt-4o-mini"
@@ -16,7 +16,7 @@ class Settings(BaseSettings):
 
 
 settings = Settings()
-app = FastAPI(title=settings.app_name, version="0.1.0")
+app = FastAPI(title=settings.app_name, version="0.2.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[origin.strip() for origin in settings.cors_origins.split(",") if origin.strip()],
@@ -39,7 +39,7 @@ async def health() -> dict[str, str]:
 async def status() -> dict[str, object]:
     return {
         "name": "SENTRA",
-        "version": "0.1.0",
+        "version": "0.2.0",
         "stage": "mvp",
         "ai_configured": bool(settings.ai_api_key),
         "capabilities": {
