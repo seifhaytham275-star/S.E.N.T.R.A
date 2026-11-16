@@ -7,9 +7,9 @@ import {
 
 type Message = { id: string; role: "user" | "assistant"; content: string; time: number };
 const STORAGE_KEY = "sentra.mvp.conversations.v1";
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || localStorage.getItem("sentra.localApiUrl") || "http://127.0.0.1:8000").replace(/\/$/, "");
 const modules = [
-  { name: "AI Core", detail: "Model-powered conversations", icon: BrainCircuit, state: "Needs API key" },
+  { name: "AI Core", detail: "Model-powered conversations", icon: BrainCircuit, state: "Three local Ollama models" },
   { name: "Memory Center", detail: "User-controlled memory", icon: Database, state: "Coming next" },
   { name: "Gmail", detail: "Email workspace", icon: Mail, state: "Not connected" },
   { name: "YouTube", detail: "Video discovery & insights", icon: Youtube, state: "Coming next" },
@@ -38,7 +38,7 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
-  const [apiReady, setApiReady] = useState(false);
+  const [apiReady, setApiReady] = useState(false);\n  const [modelMode, setModelMode] = useState<"general" | "coding" | "reasoning">("general");
 
   useEffect(() => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
@@ -55,7 +55,7 @@ export default function App() {
       .then((data) => {
         if (!alive) return;
         setApiStatus("online");
-        setApiReady(Boolean(data.ai_configured));
+        setApiReady(Boolean(data.ai_ready));
       })
       .catch(() => { if (alive) setApiStatus("offline"); });
     return () => { alive = false; };
@@ -75,7 +75,7 @@ export default function App() {
       const response = await fetch(`${API_BASE}/api/v1/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: content }),
+        body: JSON.stringify({ message: content, mode: modelMode }),
       });
       const data = await response.json();
       if (!response.ok) throw new Error(data.detail || "The AI service is not ready.");
@@ -151,7 +151,7 @@ export default function App() {
         </div>
 
         <section className="workspace-panel">
-          <div className="workspace-title"><div className="assistant-icon"><Bot size={18}/></div><div><b>SENTRA Assistant</b><small>{apiReady ? "AI service connected" : "Conversation workspace · MVP"}</small></div><span className={`preview-chip ${apiReady ? "connected" : ""}`}>{apiReady ? "CONNECTED" : "EARLY ACCESS"}</span></div>
+          <div className="workspace-title"><div className="assistant-icon"><Bot size={18}/></div><div><b>SENTRA Assistant</b><small>{apiReady ? "Three local models ready" : "Connect the local Windows AI Core"}</small></div><span className={`preview-chip ${apiReady ? "connected" : ""}`}>{apiReady ? "CONNECTED" : "EARLY ACCESS"}</span></div>
           {messages.length === 0 ? <div className="empty-state"><div className="empty-symbol"><Sparkles size={21}/></div><h3>What would you like to work on?</h3><p>Start a conversation. Messages are saved locally in this browser.</p><div className="starter-prompts">{starterPrompts.map((prompt) => <button key={prompt} onClick={() => void sendMessage(prompt)}>{prompt}<span>↗</span></button>)}</div></div> : <div className="message-list">
             {messages.map((item) => <article className={`message ${item.role}`} key={item.id}><div className="message-avatar">{item.role === "assistant" ? <Sparkles size={15}/> : "S"}</div><div className="message-body"><div className="message-label">{item.role === "assistant" ? "SENTRA" : "YOU"} <time>{new Date(item.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</time></div><p>{item.content}</p></div></article>)}
             {busy && <div className="typing"><i/><i/><i/> SENTRA is working…</div>}
@@ -160,14 +160,14 @@ export default function App() {
             <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder="Message SENTRA…" rows={1} aria-label="Message SENTRA"/>
             <button type="submit" className="send-button" disabled={!draft.trim() || busy} aria-label="Send message"><Send size={17}/></button>
           </form>
-          <div className="composer-foot"><span><ShieldCheck size={13}/> Conversation saved on this device</span><span>{apiReady ? "AI Core connected" : "AI provider not configured"}</span></div>
+          <div className="composer-foot"><span><ShieldCheck size={13}/> Conversation saved on this device</span><span>{apiReady ? "Local AI Core ready · no API keys" : "Waiting for local Ollama models"}</span></div>
         </section>
         <footer><span>© 2026 SENTRA PROJECT</span><span>BUILT WITH INTENTION <b>◆</b></span></footer>
       </section> : <section className="content subpage">
         <div className="eyebrow"><span className="eyebrow-line"/> SENTRA MODULE</div>
         <h1>{pageTitle}</h1>
         {active === "Integrations" ? <div className="integration-grid">{modules.slice(2, 6).map(({name,detail,icon:Icon,state}) => <article className="module-card" key={name}><span className="module-icon"><Icon size={19}/></span><h3>{name}</h3><p>{detail}</p><div className="module-status"><span/>{state}</div></article>)}</div> :
-          active === "Settings" ? <div className="settings-card"><h3>Runtime status</h3><p>Web client: ready</p><p>API: {apiStatus === "online" ? "reachable" : "not connected"}</p><p>AI provider: {apiReady ? "configured" : "not configured"}</p><p>Conversation storage: this browser only</p><small>API keys must be configured on the backend server. Never paste secret keys into this page.</small></div> :
+          active === "Settings" ? <div className="settings-card"><h3>Runtime status</h3><p>Web client: ready</p><p>API: {apiStatus === "online" ? "reachable" : "not connected"}</p><p>Local AI Core: {apiReady ? "three local models ready" : "not ready"}</p><p>Conversation storage: this browser only</p><small>API keys must be configured on the backend server. Never paste secret keys into this page.</small></div> :
           <div className="settings-card"><div className="empty-symbol"><Bot size={21}/></div><h3>{active} is on the roadmap</h3><p>This module is not active in MVP v0.1 yet. It will be added in a later, tested release.</p><button className="back-button" onClick={() => setActive("Workspace")}>Back to workspace</button></div>}
         <footer><span>© 2026 SENTRA PROJECT</span><span>MVP 0.1</span></footer>
       </section>}
