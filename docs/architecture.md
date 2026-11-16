@@ -6,8 +6,7 @@ SENTRA is one product delivered as a responsive web app, a Windows desktop app, 
 ## Initial stack
 - Web UI: React, TypeScript, Vite.
 - API: Python, FastAPI, Pydantic.
-- Desktop: Tauri 2 wrapper around the built web client (later milestone).
-- Android: Capacitor wrapper around the built web client (later milestone).
+- Desktop and Android: Tauri 2 wrappers around the shared built web client (later milestone); Tauri officially supports Windows and Android targets. The web app remains independently deployable.
 - Persistence: PostgreSQL for durable accounts, conversations, settings, and consent records.
 - Optional semantic memory: pgvector after explicit user-controlled memory requirements are implemented.
 - AI providers: backend-only adapters behind a provider-neutral interface.
