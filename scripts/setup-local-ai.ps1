@@ -11,17 +11,27 @@ if (-not (Get-Command ollama -ErrorAction SilentlyContinue)) {
   exit 1
 }
 
-Write-Host "Checking Ollama runtime..." -ForegroundColor Cyan
+Write-Host "Checking local Ollama service..." -ForegroundColor Cyan
 try {
-  ollama list | Out-Null
+  Invoke-RestMethod "http://127.0.0.1:11434/api/tags" -TimeoutSec 3 | Out-Null
 } catch {
-  Write-Host "Could not contact Ollama. Start the Ollama app, then retry." -ForegroundColor Red
-  exit 1
+  Write-Host "Starting the Ollama local service..." -ForegroundColor Cyan
+  Start-Process "ollama" -ArgumentList "serve" -WindowStyle Hidden
+  $ready = $false
+  for ($attempt = 0; $attempt -lt 15; $attempt++) {
+    Start-Sleep -Seconds 2
+    try {
+      Invoke-RestMethod "http://127.0.0.1:11434/api/tags" -TimeoutSec 2 | Out-Null
+      $ready = $true
+      break
+    } catch {}
+  }
+  if (-not $ready) { throw "Ollama did not start. Open the Ollama app and retry." }
 }
 
 foreach ($model in $models) {
-  Write-Host "Pulling $model ..." -ForegroundColor Cyan
-  ollama pull $model
+  Write-Host "Downloading $model ..." -ForegroundColor Cyan
+  & ollama pull $model
   if ($LASTEXITCODE -ne 0) { throw "Failed to download $model" }
 }
 
