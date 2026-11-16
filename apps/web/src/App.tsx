@@ -1,103 +1,176 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, AudioLines, Bot, BrainCircuit, ChevronDown, CircleHelp,
-  Command, Database, FileText, Github, Globe2, Mail, Menu, Plus,
-  Search, Send, Settings2, ShieldCheck, Sparkles, Youtube,
+  Activity, AudioLines, Bot, BrainCircuit, Check, ChevronDown, CircleHelp,
+  Command, Database, FileText, Github, Globe2, Mail, Menu, Plus, Send,
+  Settings2, ShieldCheck, Sparkles, Youtube, X,
 } from "lucide-react";
 
+type Message = { id: string; role: "user" | "assistant"; content: string; time: number };
+const STORAGE_KEY = "sentra.mvp.conversations.v1";
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
 const modules = [
-  { name: "AI Core", detail: "Model intelligence", icon: BrainCircuit, status: "Foundation" },
-  { name: "Memory", detail: "User-controlled context", icon: Database, status: "Planned" },
-  { name: "Gmail", detail: "Email workspace", icon: Mail, status: "Connect later" },
-  { name: "YouTube", detail: "Video discovery", icon: Youtube, status: "Planned" },
-  { name: "Browser", detail: "Web research", icon: Globe2, status: "Planned" },
-  { name: "Developer", detail: "Code intelligence", icon: Github, status: "Planned" },
-  { name: "Files", detail: "Document intelligence", icon: FileText, status: "Planned" },
-  { name: "Voice", detail: "Arabic & English audio", icon: AudioLines, status: "Planned" },
+  { name: "AI Core", detail: "Model-powered conversations", icon: BrainCircuit, state: "Needs API key" },
+  { name: "Memory Center", detail: "User-controlled memory", icon: Database, state: "Coming next" },
+  { name: "Gmail", detail: "Email workspace", icon: Mail, state: "Not connected" },
+  { name: "YouTube", detail: "Video discovery & insights", icon: Youtube, state: "Coming next" },
+  { name: "Browser", detail: "Web research tools", icon: Globe2, state: "Coming next" },
+  { name: "Developer", detail: "Code & GitHub tools", icon: Github, state: "Coming next" },
+  { name: "Files", detail: "Documents & data", icon: FileText, state: "Coming next" },
+  { name: "Voice", detail: "Arabic & English voice", icon: AudioLines, state: "Coming next" },
+];
+const starterPrompts = [
+  "Help me plan a software project",
+  "Explain a programming concept",
+  "Summarize a document I provide",
 ];
 
-export default function App() {
-  const [message, setMessage] = useState("");
-  const [active, setActive] = useState("Overview");
-  const [menuOpen, setMenuOpen] = useState(false);
+function readMessages(): Message[] {
+  try {
+    const value = localStorage.getItem(STORAGE_KEY);
+    return value ? JSON.parse(value) as Message[] : [];
+  } catch { return []; }
+}
 
-  function submitMessage(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!message.trim()) return;
-    // Chat transport will be wired to the authenticated API in the AI Core phase.
-    setMessage("");
+export default function App() {
+  const [messages, setMessages] = useState<Message[]>(readMessages);
+  const [draft, setDraft] = useState("");
+  const [active, setActive] = useState("Workspace");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [apiStatus, setApiStatus] = useState<"checking" | "online" | "offline">("checking");
+  const [apiReady, setApiReady] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }, [messages]);
+
+  useEffect(() => {
+    let alive = true;
+    if (!API_BASE) { setApiStatus("offline"); return; }
+    fetch(`${API_BASE}/api/v1/status`)
+      .then(async (response) => {
+        if (!response.ok) throw new Error("API unavailable");
+        return response.json();
+      })
+      .then((data) => {
+        if (!alive) return;
+        setApiStatus("online");
+        setApiReady(Boolean(data.ai_configured));
+      })
+      .catch(() => { if (alive) setApiStatus("offline"); });
+    return () => { alive = false; };
+  }, []);
+
+  const pageTitle = useMemo(() => active === "Workspace" ? "Your intelligence space" : active, [active]);
+
+  async function sendMessage(value = draft) {
+    const content = value.trim();
+    if (!content || busy) return;
+    const userMessage: Message = { id: crypto.randomUUID(), role: "user", content, time: Date.now() };
+    setMessages((current) => [...current, userMessage]);
+    setDraft("");
+    setBusy(true);
+    try {
+      if (!API_BASE) throw new Error("The SENTRA API has not been deployed or connected yet.");
+      const response = await fetch(`${API_BASE}/api/v1/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ message: content }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || "The AI service is not ready.");
+      setMessages((current) => [...current, { id: crypto.randomUUID(), role: "assistant", content: data.reply, time: Date.now() }]);
+    } catch (error) {
+      const detail = error instanceof Error ? error.message : "Could not reach the AI service.";
+      setMessages((current) => [...current, {
+        id: crypto.randomUUID(), role: "assistant",
+        content: `I received your message, but the AI Core is not available yet. ${detail} Your conversation remains saved in this browser.`,
+        time: Date.now(),
+      }]);
+    } finally { setBusy(false); }
   }
 
-  return (
-    <div className="app-shell">
-      <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
-        <a className="brand" href="#" aria-label="SENTRA home">
-          <span className="brand-mark"><Activity size={21} /></span>
-          <span><strong>SENTRA</strong><small>PERSONAL INTELLIGENCE</small></span>
-        </a>
-        <button className="new-chat" onClick={() => setActive("Overview")}><Plus size={16} /> New workspace</button>
-        <div className="nav-label">WORKSPACE</div>
-        {["Overview", "Conversations", "Memory Center", "Integrations", "Files"].map((item) => (
-          <button key={item} className={`nav-item ${active === item ? "active" : ""}`} onClick={() => { setActive(item); setMenuOpen(false); }}>
-            {item === "Overview" ? <Command /> : item === "Memory Center" ? <Database /> : item === "Integrations" ? <Sparkles /> : item === "Files" ? <FileText /> : <Bot />}
-            {item}
-          </button>
-        ))}
-        <div className="nav-label modules-label">SYSTEM MODULES</div>
-        <div className="module-mini-list">
-          {modules.slice(0, 5).map(({ name, icon: Icon }) => <div className="module-mini" key={name}><Icon size={15} />{name}</div>)}
+  function startNewChat() {
+    setMessages([]);
+    setActive("Workspace");
+    setMenuOpen(false);
+  }
+
+  return <div className="app-shell">
+    {menuOpen && <button className="scrim" aria-label="Close navigation" onClick={() => setMenuOpen(false)} />}
+    <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
+      <div className="brand">
+        <span className="brand-mark"><Activity size={21}/></span>
+        <span><strong>SENTRA</strong><small>PERSONAL AI SYSTEM</small></span>
+        <button className="icon-button close-menu" onClick={() => setMenuOpen(false)} aria-label="Close menu"><X size={17}/></button>
+      </div>
+      <button className="new-chat" onClick={startNewChat}><Plus size={16}/> New conversation <kbd>⌘ K</kbd></button>
+      <div className="nav-label">WORKSPACE</div>
+      {["Workspace", "Memory Center", "Integrations", "Files", "Settings"].map((item) => (
+        <button key={item} className={`nav-item ${active === item ? "active" : ""}`} onClick={() => { setActive(item); setMenuOpen(false); }}>
+          {item === "Workspace" ? <Command/> : item === "Memory Center" ? <Database/> : item === "Integrations" ? <Sparkles/> : item === "Files" ? <FileText/> : <Settings2/>}
+          {item}
+        </button>
+      ))}
+      <div className="nav-label modules-label">SYSTEM MODULES</div>
+      <div className="module-mini-list">
+        {modules.slice(0, 5).map(({ name, icon: Icon }) => <div className="module-mini" key={name}><Icon size={15}/>{name}</div>)}
+      </div>
+      <div className="sidebar-bottom">
+        <div className="secure-note"><ShieldCheck size={16}/><span><b>Privacy by design</b><small>Connected actions require permission</small></span></div>
+        <div className="profile"><div className="avatar">S</div><span><b>Project Founder</b><small>SENTRA workspace</small><ChevronDown size={14}/></span></div>
+      </div>
+    </aside>
+
+    <main className="main-area">
+      <header className="topbar">
+        <button className="icon-button mobile-menu" onClick={() => setMenuOpen(true)} aria-label="Open navigation"><Menu/></button>
+        <div className="breadcrumbs">SENTRA <span>/</span> {active}</div>
+        <div className="topbar-right">
+          <span className={`system-state ${apiStatus}`}><i/>{apiStatus === "online" ? "API ONLINE" : apiStatus === "checking" ? "CHECKING CORE" : "DEMO MODE"}</span>
+          <button className="icon-button" aria-label="Help" title="SENTRA MVP v0.1"><CircleHelp/></button>
         </div>
-        <div className="sidebar-bottom">
-          <div className="secure-note"><ShieldCheck size={16} /><span><b>Privacy by design</b><small>Actions require permission</small></span></div>
-          <button className="nav-item"><Settings2 /> Settings</button>
-          <div className="profile"><div className="avatar">S</div><span><b>Project Founder</b><small>SENTRA workspace</small></span><ChevronDown size={15} /></div>
+      </header>
+
+      {active === "Workspace" ? <section className="content workspace-content">
+        <div className="hero-row">
+          <div>
+            <div className="eyebrow"><span className="eyebrow-line"/> PERSONAL AI SYSTEM <span className="version">MVP 0.1</span></div>
+            <h1>Think clearly.<br/><em>Move with intent.</em></h1>
+            <p className="hero-copy">One personal workspace for your ideas, knowledge, and tools. Built around your control.</p>
+          </div>
+          <div className="core-orb" aria-label="SENTRA identity"><div className="orb-ring ring-one"/><div className="orb-ring ring-two"/><div className="orb-core"><Activity size={32}/></div><span className="orb-label">SENTRA CORE</span></div>
         </div>
-      </aside>
 
-      <main className="main-area">
-        <header className="topbar">
-          <button className="icon-button mobile-menu" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation"><Menu /></button>
-          <div className="breadcrumbs">SENTRA <span>/</span> {active}</div>
-          <div className="topbar-right"><span className="system-state"><i /> CORE INITIALIZING</span><button className="icon-button" aria-label="Help"><CircleHelp /></button></div>
-        </header>
+        <div className="section-heading"><div><span className="section-kicker">SYSTEM OVERVIEW</span><h2>Core capabilities</h2></div><span className="muted-tag"><i/> MVP FOUNDATION</span></div>
+        <div className="module-grid">
+          {modules.map(({ name, detail, icon: Icon, state }, index) => <article className="module-card" key={name}>
+            <div className="module-top"><span className="module-icon"><Icon size={19}/></span><span className={`module-index ${index === 0 ? "index-live" : ""}`}>{String(index + 1).padStart(2, "0")}</span></div>
+            <h3>{name}</h3><p>{detail}</p><div className="module-status"><span/>{state}</div>
+          </article>)}
+        </div>
 
-        <section className="content">
-          <div className="hero-row">
-            <div>
-              <div className="eyebrow"><span className="eyebrow-line" /> PERSONAL AI SYSTEM <span className="version">BUILD 0.1</span></div>
-              <h1>Your intelligence.<br /><em>One connected space.</em></h1>
-              <p className="hero-copy">A personal AI workspace designed around your tools, your context, and your control.</p>
-            </div>
-            <div className="core-orb" aria-label="SENTRA core visual">
-              <div className="orb-ring ring-one" /><div className="orb-ring ring-two" /><div className="orb-core"><Activity size={34} /></div>
-              <span className="orb-label">SENTRA CORE</span>
-            </div>
-          </div>
-
-          <div className="section-heading"><div><span className="section-kicker">SYSTEM OVERVIEW</span><h2>Core capabilities</h2></div><span className="muted-tag"><i /> ARCHITECTURE FOUNDATION</span></div>
-          <div className="module-grid">
-            {modules.map(({ name, detail, icon: Icon, status }, index) => (
-              <article className="module-card" key={name}>
-                <div className="module-top"><span className="module-icon"><Icon size={19} /></span><span className={`module-index ${index === 0 ? "index-live" : ""}`}>{String(index + 1).padStart(2, "0")}</span></div>
-                <h3>{name}</h3><p>{detail}</p><div className="module-status"><span />{status}</div>
-              </article>
-            ))}
-          </div>
-
-          <section className="workspace-panel">
-            <div className="workspace-title"><div className="assistant-icon"><Bot size={18} /></div><div><b>SENTRA Assistant</b><small>Conversation interface preview</small></div><span className="preview-chip">PREVIEW</span></div>
-            <div className="empty-state"><div className="empty-symbol"><Sparkles size={21} /></div><h3>Ready when you are.</h3><p>The conversation engine will connect here during the AI Core phase. No model is connected yet.</p></div>
-            <form className="composer" onSubmit={submitMessage}>
-              <input value={message} onChange={(event) => setMessage(event.target.value)} placeholder="Ask SENTRA anything..." aria-label="Message SENTRA" />
-              <button type="button" className="composer-tool" aria-label="Search"><Search size={17} /></button>
-              <button type="submit" className="send-button" aria-label="Send message"><Send size={17} /></button>
-            </form>
-            <div className="composer-foot"><span><ShieldCheck size={13} /> Your data stays under your control</span><span>AI responses not yet connected</span></div>
-          </section>
-
-          <footer><span>© 2026 SENTRA PROJECT</span><span>BUILT WITH INTENTION <b>◆</b></span></footer>
+        <section className="workspace-panel">
+          <div className="workspace-title"><div className="assistant-icon"><Bot size={18}/></div><div><b>SENTRA Assistant</b><small>{apiReady ? "AI service connected" : "Conversation workspace · MVP"}</small></div><span className={`preview-chip ${apiReady ? "connected" : ""}`}>{apiReady ? "CONNECTED" : "EARLY ACCESS"}</span></div>
+          {messages.length === 0 ? <div className="empty-state"><div className="empty-symbol"><Sparkles size={21}/></div><h3>What would you like to work on?</h3><p>Start a conversation. Messages are saved locally in this browser.</p><div className="starter-prompts">{starterPrompts.map((prompt) => <button key={prompt} onClick={() => void sendMessage(prompt)}>{prompt}<span>↗</span></button>)}</div></div> : <div className="message-list">
+            {messages.map((item) => <article className={`message ${item.role}`} key={item.id}><div className="message-avatar">{item.role === "assistant" ? <Sparkles size={15}/> : "S"}</div><div className="message-body"><div className="message-label">{item.role === "assistant" ? "SENTRA" : "YOU"} <time>{new Date(item.time).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</time></div><p>{item.content}</p></div></article>)}
+            {busy && <div className="typing"><i/><i/><i/> SENTRA is working…</div>}
+          </div>}
+          <form className="composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
+            <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder="Message SENTRA…" rows={1} aria-label="Message SENTRA"/>
+            <button type="submit" className="send-button" disabled={!draft.trim() || busy} aria-label="Send message"><Send size={17}/></button>
+          </form>
+          <div className="composer-foot"><span><ShieldCheck size={13}/> Conversation saved on this device</span><span>{apiReady ? "AI Core connected" : "AI provider not configured"}</span></div>
         </section>
-      </main>
-    </div>
-  );
+        <footer><span>© 2026 SENTRA PROJECT</span><span>BUILT WITH INTENTION <b>◆</b></span></footer>
+      </section> : <section className="content subpage">
+        <div className="eyebrow"><span className="eyebrow-line"/> SENTRA MODULE</div>
+        <h1>{pageTitle}</h1>
+        {active === "Integrations" ? <div className="integration-grid">{modules.slice(2, 6).map(({name,detail,icon:Icon,state}) => <article className="module-card" key={name}><span className="module-icon"><Icon size={19}/></span><h3>{name}</h3><p>{detail}</p><div className="module-status"><span/>{state}</div></article>)}</div> :
+          active === "Settings" ? <div className="settings-card"><h3>Runtime status</h3><p>Web client: ready</p><p>API: {apiStatus === "online" ? "reachable" : "not connected"}</p><p>AI provider: {apiReady ? "configured" : "not configured"}</p><p>Conversation storage: this browser only</p><small>API keys must be configured on the backend server. Never paste secret keys into this page.</small></div> :
+          <div className="settings-card"><div className="empty-symbol"><Bot size={21}/></div><h3>{active} is on the roadmap</h3><p>This module is not active in MVP v0.1 yet. It will be added in a later, tested release.</p><button className="back-button" onClick={() => setActive("Workspace")}>Back to workspace</button></div>}
+        <footer><span>© 2026 SENTRA PROJECT</span><span>MVP 0.1</span></footer>
+      </section>}
+    </main>
+  </div>;
 }
