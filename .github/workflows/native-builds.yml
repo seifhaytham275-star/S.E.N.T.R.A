@@ -27,6 +27,8 @@ jobs:
         run: npm install
       - name: Build web interface
         run: npm run build
+        env:
+          VITE_BASE_PATH: ./
       - name: Package Windows app
         run: npx electron-builder --win nsis
       - uses: actions/upload-artifact@v4
