@@ -1,13 +1,22 @@
 {
   "name": "sentra",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "workspaces": ["apps/web"],
   "scripts": {
     "dev": "npm --workspace apps/web run dev",
     "build": "npm --workspace apps/web run build",
     "typecheck": "npm --workspace apps/web run typecheck",
-    "test": "npm --workspace apps/web run test"
+    "test": "npm --workspace apps/web run test",
+    "mobile:sync": "npm --workspace apps/web run build && cap sync android",
+    "mobile:android": "cap open android",
+    "desktop:dev": "npm --workspace apps/web run build && electron .",
+    "desktop:dist": "npm --workspace apps/web run build && electron-builder --win nsis"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "electron": "^36.4.0",
+    "electron-builder": "^26.0.12"
   }
 }
