@@ -1,34 +1,62 @@
 # SENTRA
 
-Original personal AI system for Web, Windows, and Android.
+**An original personal AI workspace.** Project founder: Seif Haytham.
 
-Status: Phase 1 foundation. Integrations are not active until credentials are configured and end-to-end tests pass.
+SENTRA targets Web first, with Windows and Android packaging planned after the web experience and API are stable.
 
-See `docs/architecture.md` for architecture and `docs/roadmap.md` for milestones.
+## MVP v0.1 status
 
-## Current scaffold
+- Responsive dark SENTRA workspace UI.
+- Navigation for Workspace, Memory Center, Integrations, Files, and Settings.
+- Conversation composer and browser-local conversation history.
+- API connection/status indicator.
+- FastAPI service foundation with health and capability endpoints.
+- GitHub Actions CI and GitHub Pages deployment workflow.
 
-The repository currently contains the initial responsive React/Vite UI, a FastAPI health/status service, environment-variable templates, architecture and roadmap documents, and a GitHub Actions workflow. The chat box is a UI preview only; no AI provider is connected. Gmail, YouTube, browser, memory, voice, file processing, and developer integrations are not implemented yet.
+**Important:** MVP v0.1 is a functional web interface, not a fully connected AI assistant. AI replies require a deployed backend and a server-side provider key. Gmail, YouTube, browser automation, persistent cloud memory, voice, file analysis, and developer integrations are not active yet. The interface reports unavailable services honestly and does not simulate successful integrations.
 
-## Run the web app
+## Run the web app locally
 
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 20+.
 
 ```bash
 npm install
 npm run dev
 ```
 
-## Run the API
+Open `http://localhost:5173`.
 
-Requirements: Python 3.11 or newer.
+Build and type-check:
+
+```bash
+npm run typecheck
+npm run build
+```
+
+## Run the API locally
+
+Requirements: Python 3.11+.
 
 ```bash
 cd services/api
 python -m venv .venv
-# Activate the environment, then:
+# Windows PowerShell: .venv\\Scripts\\Activate.ps1
+# macOS/Linux: source .venv/bin/activate
 pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
-The web UI is available at `http://localhost:5173`; the API health endpoint is `http://localhost:8000/health`.
+Health: `http://localhost:8000/health`.
+
+## Publish the web MVP with GitHub Pages
+
+1. Open repository **Settings → Pages**.
+2. Under **Build and deployment**, set **Source** to **GitHub Actions**.
+3. Open **Actions**, allow workflows if GitHub asks, then run **SENTRA Web Deploy** (or push to `main`).
+4. When the workflow succeeds, open **Settings → Pages** to find the live URL. The expected URL is `https://seifhaytham275-star.github.io/S.E.N.T.R.A/`.
+
+The GitHub Pages site hosts the static web client. It does not host the Python API. To activate AI chat, deploy `services/api` to a Python hosting service and set `VITE_API_BASE_URL` as a GitHub Actions repository variable to that API's public HTTPS URL, then rerun the deploy workflow. Configure provider credentials only as backend secrets/environment variables; never add them to the frontend or repository.
+
+## Project architecture
+
+See `docs/architecture.md` and `docs/roadmap.md`.
