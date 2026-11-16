@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity, AudioLines, Bot, BrainCircuit, Check, ChevronDown, CircleHelp,
+  Activity, AudioLines, Bot, BrainCircuit, ChevronDown, CircleHelp,
   Command, Database, FileText, Github, Globe2, Mail, Menu, Plus, Send,
   Settings2, ShieldCheck, Sparkles, Youtube, X,
 } from "lucide-react";
