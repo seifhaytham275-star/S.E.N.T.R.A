@@ -63,3 +63,4 @@
  .subpage{min-height:calc(100vh - 58px)}
  .message-list{max-height:300px}
 }
+\n.model-select{max-width:145px;min-width:110px;border:1px solid #26394a;border-radius:6px;background:#101e2a;color:#9fc9d1;padding:7px 6px;font:10px "DM Mono";outline:none}.model-select:focus{border-color:#4b8790}@media(max-width:520px){.model-select{max-width:112px;min-width:95px;font-size:9px;padding:6px 3px}}\n
