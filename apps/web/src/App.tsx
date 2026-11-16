@@ -161,7 +161,7 @@ export default function App() {
           </div>}
           <form className="composer" onSubmit={(event) => { event.preventDefault(); void sendMessage(); }}>
             <select className="model-select" aria-label="Choose AI provider" value={provider} onChange={(event) => setProvider(event.target.value as "local" | "gemini")}><option value="local">Local models</option><option value="gemini">Gemini API</option></select>
-            {provider === "local" && <select className="model-select" aria-label="Choose local AI model" value={modelMode} onChange={(event) => setModelMode(event.target.value as "general" | "coding" | "reasoning")}><option value="general">Qwen · General</option><option value="coding">Qwen Coder · Code</option><option value="reasoning">DeepSeek R1 · Reasoning</option></select>
+            {provider === "local" && <select className="model-select" aria-label="Choose local AI model" value={modelMode} onChange={(event) => setModelMode(event.target.value as "general" | "coding" | "reasoning")}><option value="general">Qwen · General</option><option value="coding">Qwen Coder · Code</option><option value="reasoning">DeepSeek R1 · Reasoning</option></select>}
             <textarea value={draft} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); void sendMessage(); } }} placeholder="Message SENTRA…" rows={1} aria-label="Message SENTRA"/>
             <button type="submit" className="send-button" disabled={!draft.trim() || busy} aria-label="Send message"><Send size={17}/></button>
           </form>
