@@ -60,3 +60,34 @@ The GitHub Pages site hosts the static web client. It does not host the Python A
 ## Project architecture
 
 See `docs/architecture.md` and `docs/roadmap.md`.
+
+
+## Native apps (Windows + Android)
+
+The web workspace is shared by the native shells so features remain consistent.
+
+### Windows installer
+```bash
+npm install
+npm run build
+npx electron-builder --win nsis
+```
+The installer is written to `dist-native/`. The GitHub Actions workflow also builds it automatically and uploads it as the `SENTRA-Windows` artifact.
+
+### Android APK
+Requirements: Node.js 22, JDK 21, Android SDK and platform tools.
+```bash
+npm install
+npm run build
+npx cap add android
+npx cap sync android
+cd android
+./gradlew assembleDebug
+```
+APK output: `android/app/build/outputs/apk/debug/app-debug.apk`.
+The GitHub Actions workflow generates the Android project on the runner and uploads the debug APK as `SENTRA-Android-debug`.
+
+These are installable development builds, not Play Store / production-signed releases. A production Android release needs a private signing key and protected CI secrets. Never commit signing keys or AI provider keys.
+
+### Native build downloads
+Open the repository's Actions tab, select the latest successful **SENTRA Native Builds** run, and download either artifact. Artifacts expire after 14 days; create a GitHub Release for durable distribution.
